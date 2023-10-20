@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+<style>
+   /* Estilos Generales */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #e4f2e9; /* Color claro inspirado en la naturaleza */
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+h1 {
+    color: #004d00; /* Verde fuerte para encabezados */
+    margin-top: 20px;
+}
+
+/* Estilos para el Formulario */
+form#loginForm {
+    background-color: #d1e5d1; /* Color claro de fondo inspirado en la naturaleza */
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-top: 20px;
+    width: 100%;
+    max-width: 400px; /* Limitar el ancho máximo del formulario */
+}
+
+form#loginForm input[type="text"],
+form#loginForm input[type="password"] {
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #b5d6b2; /* Color de borde inspirado en la naturaleza */
+    border-radius: 4px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+form#loginForm input[type="button"] {
+    background-color: #004d00; /* Verde fuerte */
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form#loginForm input[type="button"]:hover {
+    background-color: #003300; /* Verde oscuro al pasar el ratón */
+}
+
+/* Estilos para la tabla */
+table {
+    border-collapse: collapse;
+    width: 90%;
+    margin-top: 20px;
+}
+
+table, th, td {
+    border: 1px solid #b5d6b2; /* Color de borde inspirado en la naturaleza */
+}
+
+th, td {
+    padding: 8px 12px;
+    text-align: left;
+}
+
+th {
+    background-color: #004d00; /* Verde fuerte para encabezados de tabla */
+    color: white;
+}
+
+tr:hover {
+    background-color: #c7eac7; /* Color de fondo al pasar el ratón sobre una fila */
+}
+
+/* Estilos para el botón "REFRESH" */
+.button {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 10px 20px;
+    background-color: #004d00; /* Verde fuerte */
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s;
+}
+
+.button:hover {
+    background-color: #003300; /* Verde oscuro al pasar el ratón */
+}
+
+/* Estilos Responsivos */
+@media (max-width: 480px) {
+    form#loginForm {
+        padding: 10px;
+    }
+
+    form#loginForm input[type="text"],
+    form#loginForm input[type="password"] {
+        margin: 5px 0;
+    }
+}
+
+</style>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PlanTec Visualización de Datos</title>
+    <H1>PlanTec</H1>
+    <H2>Datos Recolectados</H2>
+    <!-- Biblioteca de Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Biblioteca de jQuery para facilitar AJAX -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
+
+
+    <script>
+    var dataTimestamp; // Variable global para almacenar el último dato recibido
+
+function requestData() {
+    var username = document.getElementById("usernameInput").value;
+    var password = document.getElementById("passwordInput").value;
+
+    //if(username !== "root" || password !== "prueba123") {
+   //     alert("Usuario o contraseña incorrectos");
+   //     return; // Termina la ejecución de la función si no coinciden.
+   // }
+
+    $.ajax({
+        url: "fetchData.php", // Creamos un nuevo archivo PHP para esta tarea
+        type: "POST",
+        data: {
+            lastTimestamp: dataTimestamp // Enviamos el último dato recibido
+        },
+       success: function(response) {
+    try {
+        var data = JSON.parse(response);
+        updateTable(data);
+        updateChart(data);
+    } catch (e) {
+        console.error("Error al procesar la respuesta:", e);
+    }
+},
+
+        error: function() {
+            alert("Hubo un error al obtener los datos");
+        }
+    });
+}
+
+// Global chart variable
+var myChart;
+
+function initializeChart() {
+    var ctx = document.getElementById('chartContainer').getContext('2d');
+    myChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [], // Esto se llenará con las fechas/timestamps
+            datasets: [{
+                label: 'Temperatura Ambiente',
+                data: [], // Esto se llenará con los datos de temperatura
+                borderColor: 'red',
+                fill: false
+            }, {
+                label: 'Humedad Ambiente',
+                data: [], // Esto se llenará con los datos de humedad ambiente
+                borderColor: 'blue',
+                fill: false
+            }, {
+                label: 'Humedad de la Tierra',
+                data: [], // Esto se llenará con los datos de humedad de la tierra
+                borderColor: 'green',
+                fill: false
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'minute'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateTable(data) {
+    var tableHtml = "<table border='1'><tr><th>Humedad de la Tierra</th><th>Humedad Ambiente</th><th>Temperatura Ambiente</th><th>Fecha</th></tr>";
+    data.forEach(function(row) {
+        tableHtml += "<tr><td>" + row.temp + "%</td><td>" + row.humtemp + "%</td><td>" + row.humamb + "°C</td><td>" + row.date + "</td></tr>";
+    });
+    tableHtml += "</table>";
+    document.getElementById("dataTable").innerHTML = tableHtml;
+}
+
+function updateChart(data) {
+    data.forEach(function(row) {
+        myChart.data.labels.push(row.date);
+        myChart.data.datasets[0].data.push(row.humamb);
+        myChart.data.datasets[1].data.push(row.humtemp);
+        myChart.data.datasets[2].data.push(row.temp);
+    });
+    myChart.update();
+}
+document.addEventListener("DOMContentLoaded", function() {
+    initializeChart();
+});
+
+
+
+</script>
+
+</head>
+
+<body>
+    <form id="loginForm">
+         Usuario: <input type="text" id="usernameInput" name="username" required>
+        Contraseña: <input type="password" id="passwordInput" name="password" required>
+        <input type="button" value="Verificar" onclick="requestData()">
+    </form>
+
+    <div id="dataTable">
+        <!-- Aquí se mostrará la tabla después de validar el usuario y contraseña -->
+    </div>
+    <canvas id="chartContainer" style="width: 100%; height: 400px;"></canvas>
+
+<a href="https://plantecofficial.000webhostapp.com/admin.php" class="button">REFRESH</a>
+
+<script>
+    const canisterId = "aovwi-4maaa-aaaaa-qaagq-cai"; // Reemplaza con tu canister ID real
+
+    async function addMeasurement() {
+        const soilHumidity = ...; // Obtener de tu frontend
+        const ambientHumidity = ...; // Obtener de tu frontend
+        const ambientTemperature = ...; // Obtener de tu frontend
+
+        const result = await window.ic.plug.call(canisterId, "addMeasurement", [soilHumidity, ambientHumidity, ambientTemperature]);
+        console.log(result);
+    }
+</script>
+
+
+</body>
+
+</html>
